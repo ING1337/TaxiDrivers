@@ -134,6 +134,7 @@ end
 function TaxiDrivers:AddDriver(args)
 	local driver = Driver(args.player)
 	table.insert(self.drivers, driver)
+	Chat:Send(args.player, chatPrefix .. "You are Taxidriver " .. tostring(#self.drivers) .. " now", chatTextColor1) 
 	
 	local occupants = args.vehicle:GetOccupants()
 	if #occupants > 1 then
@@ -141,8 +142,6 @@ function TaxiDrivers:AddDriver(args)
 			if occupants[i] ~= args.player then driver:AddPassenger(occupants[i]) end
 		end
 	end
-	
-	Chat:Send(args.player, chatPrefix .. "You are Taxidriver " .. tostring(#self.drivers) .. " now", chatTextColor1) 
 end
 
 function TaxiDrivers:Update(args)
