@@ -2,26 +2,27 @@
 
 -- ##############################################################################################################
 
--- Vehicle ID's that can be used as a Taxi, leave empty to enable all vehicles
+-- vehicle ID's that can be used as a Taxi, leave empty to enable all vehicles
 vehicles          = {8, 9, 12, 22, 23, 41, 66, 70}
 
+-- main settings, the money system works with integers! avoid to produce payout values < 0.5
 price             = 10   -- price per kilometer
 payBonus          = true -- pay out a bonus when the passenger leave the taxi
 
-update            = 2    -- defines the time between the script checks if a driver earned money
+update            = 2    -- defines the time in seconds between the script checks if a driver earned money
 distancePayOut    = 500  -- the distance in meters for every payout the taxes
 maxVelocity       = 250  -- the max velocity in km/h, if the driver was faster, no money paid out. it use the average speed for the last <distancePayOut> meters
+
+-- defines how much the passenger have to pay of the taxes, all values are multiplier!
+-- is the value 0.5, the passenger have to pay the half of the taxes, is it 1 the whole tax and so on...
+passengerTax      = 0
+passengerBonusTax = 0
 
 -- values to calculate the bonus
 -- formula: (drivenKM * bonusDistWeight) * (averageKMH * bonusTimeWeight) * bonusMultiplier
 bonusMultiplier   = 0.5
 bonusDistWeight   = 1
 bonusTimeWeight   = 0.5
-
--- defines how much the passenger have to pay of the taxes, all values are multiplier!
--- is the value 0.5, the passenger have to pay the half of the taxes, is it 1 the whole tax and so on...
-passengerTax      = 0
-passengerBonusTax = 0
 
 chatTextColor1    = Color(255, 255, 155) -- color for normal messages
 chatTextColor2    = Color(255, 55, 55)   -- color for warnings
