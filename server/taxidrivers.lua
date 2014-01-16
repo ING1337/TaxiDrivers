@@ -20,9 +20,9 @@ passengerBonusTax = 0
 
 -- values to calculate the bonus
 -- formula: (drivenKM * bonusDistWeight) * (averageKMH * bonusTimeWeight) * bonusMultiplier
-bonusMultiplier   = 0.5
 bonusDistWeight   = 1
 bonusTimeWeight   = 0.5
+bonusMultiplier   = 0.5
 
 chatTextColor1    = Color(255, 255, 155) -- color for normal messages
 chatTextColor2    = Color(255, 55, 55)   -- color for warnings
