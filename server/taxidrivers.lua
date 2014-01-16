@@ -5,7 +5,7 @@
 -- Vehicle ID's that can be used as a Taxi, leave empty to enable all vehicles
 vehicles          = {8, 9, 12, 22, 23, 41, 66, 70}
 
-price             = 10   -- Price per kilometer
+price             = 10   -- price per kilometer
 payBonus          = true -- pay out a bonus when the passenger leave the taxi
 
 update            = 2    -- defines the time between the script checks if a driver earned money
@@ -24,7 +24,7 @@ passengerTax      = 0
 passengerBonusTax = 0
 
 chatTextColor1    = Color(255, 255, 155) -- color for normal messages
-chatTextColor2    = Color(255, 55, 55)   -- color for warning
+chatTextColor2    = Color(255, 55, 55)   -- color for warnings
 chatPrefix        = "[Taxi] "
 
 -- ##############################################################################################################
