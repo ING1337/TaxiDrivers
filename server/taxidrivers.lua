@@ -2,7 +2,7 @@
 
 -- ##############################################################################################################
 
--- vehicle ID's that can be used as a Taxi, leave empty to enable all vehicles
+-- vehicle ID's that can be used as a taxi, leave empty to enable all vehicles
 vehicles          = {8, 9, 12, 22, 23, 41, 66, 70}
 
 -- main settings, the money system works with integers! avoid to produce payout values < 0.5
