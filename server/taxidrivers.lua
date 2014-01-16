@@ -102,7 +102,7 @@ function Driver:Update(forceUpdate)
 						p.player:SetPosition(p.player:GetPosition() + Vector3(0, 5, 0))
 						self:RemovePassenger(p.player)
 					else
-						p.player:SetMoney(p.player:GetMoney() - (price / 1000) * dist)
+						p.player:SetMoney(p.player:GetMoney() - (price / 1000) * dist * passengerTax)
 					end
 				end
 			end
