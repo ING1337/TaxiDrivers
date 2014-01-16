@@ -7,7 +7,7 @@ vehicles          = {8, 9, 12, 22, 23, 41, 66, 70}
 
 -- main settings, the jcmp money system works with integers! avoid to produce payout values < 0.5
 price             = 10   -- price per kilometer
-payBonus          = true -- pay out a bonus when the passenger leave the taxi
+payBonus          = true -- pay out a bonus when a passenger leave the taxi
 
 update            = 2    -- defines the time in seconds between the script checks if a driver earned money
 distancePayOut    = 500  -- the distance in meters for every payout the taxes
