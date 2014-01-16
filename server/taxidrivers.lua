@@ -96,7 +96,7 @@ function Driver:Update(forceUpdate)
 				Chat:Send(self.player, chatPrefix .. "You are too fast!", chatTextColor2)
 			else
 				money = money + (price / 1000) * dist
-				if passengerTax then
+				if passengerTax > 0 then
 					if p.player:GetMoney() < (price / 1000) * dist * passengerTax then
 						Chat:Send(self.player, chatPrefix .. "Passenger " .. p.player:GetName() .. " has no money anymore!", chatTextColor2)
 						p.player:SetPosition(p.player:GetPosition() + Vector3(0, 5, 0))
