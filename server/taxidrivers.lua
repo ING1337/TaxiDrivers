@@ -26,7 +26,7 @@ bonusTimeWeight   = 0.5
 
 chatTextColor1    = Color(255, 255, 155) -- color for normal messages
 chatTextColor2    = Color(255, 55, 55)   -- color for warnings
-chatPrefix        = "[Taxi] "
+chatPrefix        = "[Taxi] "            -- text that shows in fornt of every message
 
 -- ##############################################################################################################
 
