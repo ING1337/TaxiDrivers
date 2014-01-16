@@ -97,12 +97,12 @@ function Driver:Update(forceUpdate)
 			else
 				money = money + (price / 1000) * dist
 				if passengerTax then
-					if p.player:GetMoney() < money * passengerTax then
+					if p.player:GetMoney() < (price / 1000) * dist * passengerTax then
 						Chat:Send(self.player, chatPrefix .. "Passenger " .. p.player:GetName() .. " has no money anymore!", chatTextColor2)
 						p.player:SetPosition(p.player:GetPosition() + Vector3(0, 5, 0))
 						self:RemovePassenger(p.player)
 					else
-						p.player:SetMoney(p.player:GetMoney() - money)
+						p.player:SetMoney(p.player:GetMoney() - (price / 1000) * dist)
 					end
 				end
 			end
