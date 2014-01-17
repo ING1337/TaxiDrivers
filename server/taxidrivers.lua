@@ -7,11 +7,12 @@ vehicles          = {8, 9, 12, 22, 23, 41, 66, 70}
 
 -- main settings, the jcmp money system works with integers! avoid to produce payout values < 0.5
 price             = 10   -- price per kilometer
-payBonus          = true -- pay out a bonus when a passenger leave the taxi
+penalty           = 100  -- money the driver has to pay to the passenger when he dies in the taxi
+payBonus          = true -- pay out a bonus when the passenger leave the taxi
 
 update            = 2    -- defines the time in seconds between the script checks if a driver earned money
 distancePayOut    = 500  -- the distance in meters for every payout the taxes
-maxVelocity       = 250  -- the max velocity in km/h, if the driver was faster, no money paid out. it use the average speed for the last <distancePayOut> meters
+maxVelocity       = 50  -- the max velocity in km/h, if the driver was faster, no money paid out. it use the average speed for the last <distancePayOut> meters
 
 -- defines how much the passenger have to pay of the taxes, all values are multiplier!
 -- is the value 0.5, the passenger have to pay the half of the taxes, is it 1 the whole tax and so on...
@@ -19,14 +20,14 @@ passengerTax      = 0
 passengerBonusTax = 0
 
 -- values to calculate the bonus
--- formula: (drivenKM * bonusDistWeight) * (averageKMH * bonusTimeWeight) * bonusMultiplier
+-- formula: (drivenKM * bonusDistWeight) * ((averageKMH / 1000) * bonusTimeWeight) * bonusMultiplier
+bonusMultiplier   = 0.5
 bonusDistWeight   = 1
 bonusTimeWeight   = 0.5
-bonusMultiplier   = 0.5
 
 chatTextColor1    = Color(255, 255, 155) -- color for normal messages
 chatTextColor2    = Color(255, 55, 55)   -- color for warnings
-chatPrefix        = "[Taxi] "            -- text that shows in front of every message
+chatPrefix        = "[Taxi] "            -- text that shows in fornt of every message
 
 -- ##############################################################################################################
 
@@ -41,6 +42,7 @@ function Passenger:__init(player)
 	
 	self.time          = self.startTime
 	self.distance      = 0
+	self.payed         = 0
 end
 
 -- ##############################################################################################################
@@ -51,58 +53,81 @@ function Driver:__init(player)
 	self.player      = player
 	self.vehicle     = player:GetVehicle()
 	self.passengers  = {}
+	self.earned      = 0
 end
 
 function Driver:AddPassenger(player)
 	table.insert(self.passengers, Passenger(player))
 	Chat:Send(self.player, chatPrefix .. player:GetName() .. " is your passenger now", chatTextColor1)
-	Chat:Send(player, chatPrefix .. "You are passenger of Taxidriver " .. self.player:GetName() .. " now, this cab costs you " .. math.floor(price * passengerTax) .. "$ per KM", chatTextColor1) 
+	Chat:Send(player, chatPrefix .. "You are passenger of Taxidriver " .. self.player:GetName() .. " now, this cab costs you " .. math.floor(price * passengerTax) .. "$ per km", chatTextColor1) 
 end
 
-function Driver:RemovePassenger(player)
-	for i=1, #self.passengers, 1 do
-		p = self.passengers[i]
-		if player == p.player then
-			local pos   = player:GetPosition()
-			local dist  = Vector2.Distance(Vector2(pos.x, pos.z), p.startPosition)
+function Driver:RemovePassenger(index, death)
+		local p      = self.passengers[index]
+		local player = p.player
+		table.remove(self.passengers, index)
+		
+		local pos    = player:GetPosition()
+		local dist   = Vector2.Distance(Vector2(pos.x, pos.z), p.startPosition)
+		local speed  = dist / (globalTimer:GetMilliseconds() - p.startTime) * 3600
+		
+		if speed > maxVelocity then
+			Chat:Send(self.player, chatPrefix .. "Passenger " .. player:GetName() .. " leaves | To fast, no bonus! | distance: " .. math.floor(dist) .. "m | ~speed: " .. math.floor(speed) .. " km/h", chatTextColor2)
+			return
+		end
+		
+		if death then
+			self.earned  = self.earned - (p.payed + penalty)
+			self.player:SetMoney(self.player:GetMoney() - (p.payed + penalty))
+			p.player:SetMoney(p.player:GetMoney() + (p.payed + penalty))
+			Chat:Send(self.player, chatPrefix .. "Passenger " .. player:GetName() .. " died | payback: " .. p.payed .. "$ | penalty: " .. penalty .. "$", chatTextColor2)
+			Chat:Send(player, chatPrefix .. "Taxidriver " .. self.player:GetName() .. " pays back your taxes (" .. p.payed .. "$) and a penalty (" .. penalty .. "$)", chatTextColor2)
+		else
+			local money  = dist > p.distance and (price / 1000) * (dist - p.distance) or 0
+			local bonus  = payBonus and ((dist * bonusDistWeight) * ((speed / 1000) * bonusTimeWeight)) * bonusMultiplier or 0
 			
-			local money = dist > p.distance and (price / 1000) * (dist - p.distance) or 0
-			local bonus = payBonus and ((dist * bonusDistWeight) * (dist / (globalTimer:GetMilliseconds() - p.startTime) * 3.6 * bonusTimeWeight)) * bonusMultiplier or 0
-			
+			self.earned  = self.earned + money + bonus
 			self.player:SetMoney(self.player:GetMoney() + money + bonus)
 			
 			money = (money * passengerTax) + (bonus * passengerBonusTax)
-			if money > 0 then p.player:SetMoney(p.player:GetMoney() - money) end
+			if money > 0 then player:SetMoney(player:GetMoney() - money) end
 
-			Chat:Send(self.player, chatPrefix .. "Passenger " .. p.player:GetName() .. " leaves | bonus: " .. math.floor(bonus) .. "$ | distance: " .. math.floor(dist) .. " meters", chatTextColor1)
-			table.remove(self.passengers, i)
-			return
+			Chat:Send(self.player, chatPrefix .. "Passenger " .. player:GetName() .. " leaves | bonus: " .. math.floor(bonus) .. "$ | distance: " .. math.floor(dist) .. "m | ~speed: " .. math.floor(speed) .. " km/h", chatTextColor1)
 		end
-	end
+end
+
+function Driver:EjectAllPassengers()
+		for i=1, #self.passengers, 1 do
+			self.passengers[i].player:SetPosition(self.passengers[i].player:GetPosition() + Vector3(0, 5, 0))
+		end
 end
 
 function Driver:Update(forceUpdate)
-	local p, t, pos, dist
+	local p, v, pos, dist
+	local t = globalTimer:GetMilliseconds()
 	local money = 0
+	
 	for i=1, #self.passengers, 1 do
 		p    = self.passengers[i]
 		pos  = p.player:GetPosition()
 		pos  = Vector2(pos.x, pos.z)
-		dist = Vector2.Distance(pos, p.startPosition) - p.distance --Sqr
+		dist = Vector2.Distance(pos, p.startPosition) - p.distance
 		
 		if forceUpdate or dist > distancePayOut then
-			t = globalTimer:GetMilliseconds()
 			if (dist / (t - p.time) * 3600) > maxVelocity then
-				Chat:Send(self.player, chatPrefix .. "You are too fast!", chatTextColor2)
+				Chat:Send(self.player, chatPrefix .. "You are too fast! Speed limit is at " .. maxVelocity .. " km/h", chatTextColor2)
 			else
 				money = money + (price / 1000) * dist
 				if passengerTax > 0 then
-					if p.player:GetMoney() < (price / 1000) * dist * passengerTax then
+					v = (price / 1000) * dist * passengerTax
+					if p.player:GetMoney() < v then
 						Chat:Send(self.player, chatPrefix .. "Passenger " .. p.player:GetName() .. " has no money anymore!", chatTextColor2)
+						Chat:Send(p.player, chatPrefix .. "You have no more money!", chatTextColor2)
 						p.player:SetPosition(p.player:GetPosition() + Vector3(0, 5, 0))
-						self:RemovePassenger(p.player)
+						self:RemovePassenger(i, false)
 					else
-						p.player:SetMoney(p.player:GetMoney() - (price / 1000) * dist * passengerTax)
+						p.payed = p.payed + v
+						p.player:SetMoney(p.player:GetMoney() - v)
 					end
 				end
 			end
@@ -112,6 +137,7 @@ function Driver:Update(forceUpdate)
 		end
 	end
 	if money > 0 then
+		self.earned  = self.earned + money
 		self.player:SetMoney(self.player:GetMoney() + money)
 		Chat:Send(self.player, chatPrefix .. "Taxes payout " .. math.floor(money) .. "$", chatTextColor1)
 	end
@@ -126,8 +152,9 @@ function TaxiDrivers:__init()
 	self.timer    = Timer()
 
 	Events:Subscribe("PlayerEnterVehicle", self, self.EnterVehicle)
-	Events:Subscribe("PlayerExitVehicle", self, self.PlayerExit)
-	Events:Subscribe("PlayerQuit", self, self.PlayerExit)
+	Events:Subscribe("PlayerExitVehicle", self, self.ExitVehicle)
+	Events:Subscribe("PlayerQuit", self, self.ExitVehicle)
+	Events:Subscribe("PlayerDeath", self, self.PlayerDeath)
 	Events:Subscribe("PreTick", self, self.Update)
 end
 
@@ -144,6 +171,11 @@ function TaxiDrivers:AddDriver(args)
 	end
 end
 
+function TaxiDrivers:RemoveDriver(index)
+	Chat:Send(self.drivers[index].player, chatPrefix .. "You leave your taxi, you earned " .. self.drivers[index].earned .. "$ with your last ride", chatTextColor1) 
+	table.remove(self.drivers, index)
+end
+
 function TaxiDrivers:Update(args)
 	if self.timer:GetSeconds() < update then return end
 
@@ -153,6 +185,8 @@ function TaxiDrivers:Update(args)
 
 	self.timer:Restart()
 end
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 function TaxiDrivers:EnterVehicle(args)
 	if #vehicles > 0 and self:CheckVehicle(args.vehicle:GetModelId()) == false then return end
@@ -172,16 +206,43 @@ function TaxiDrivers:EnterVehicle(args)
 	end
 end
 
-function TaxiDrivers:PlayerExit(args)
-	local d
+function TaxiDrivers:ExitVehicle(args)
+	local search = self:FindPlayer(args.player)
+	if search then
+		if search.passenger then
+			search.driver:RemovePassenger(search.index, false)
+		else
+			self:RemoveDriver(search.index)
+		end
+	end
+end
+
+function TaxiDrivers:PlayerDeath(args)
+	local search = self:FindPlayer(args.player)
+	if search then
+		if search.passenger then
+			search.driver:RemovePassenger(search.index, true)
+		else
+			search.driver:EjectAllPassengers()
+			search.driver.vehicle:SetHealth(0.1)
+			self:RemoveDriver(search.index)
+		end
+	end
+end
+
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+function TaxiDrivers:FindPlayer(player)
+	local d, p
 	for i=1, #self.drivers, 1 do
 		d = self.drivers[i]
-		if d.player == args.player then 
-			table.remove(self.drivers, i)
-			break
+		if d.player == player then return {driver = d, passenger = nil, index = i} end
+		for j=1, #d.passengers, 1 do
+			p = d.passengers[j]
+			if p.player == player then return {driver = d, passenger = p, index = j} end
 		end
-		d:RemovePassenger(args.player)
 	end
+	return nil
 end
 
 function TaxiDrivers:CheckVehicle(id)
